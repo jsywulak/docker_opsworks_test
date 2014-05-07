@@ -1,0 +1,148 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Resources": {
+
+    "jenkinsStack": {
+      "Type": "AWS::OpsWorks::Stack",
+      "Properties": {
+        "Name": {
+          "Ref": "AWS::StackName"
+        },
+        "ServiceRoleArn": {
+          "Fn::GetAtt": [ "OpsWorksServiceRole", "Arn"]            
+        },
+        "DefaultInstanceProfileArn": {
+          "Fn::GetAtt": [ "OpsWorksInstanceProfile", "Arn"]
+        },
+        "UseCustomCookbooks": true,
+        "CustomCookbooksSource" : {
+          "Type" : "git",
+          "Url" : "https://github.com/jsywulak/docker_opsworks_test.git"
+          },
+        "CustomJson" : {
+          "docker": {
+            "jenkins": "orchardup/jenkins:latest"
+          }
+        }
+      }
+    },
+
+    "jenkinsLayer": {
+      "Type": "AWS::OpsWorks::Layer",
+      "Properties": {
+        "StackId": {
+          "Ref": "jenkinsStack"
+        },
+        "Name": "jenkins",
+        "Type": "custom",
+        "Shortname": "jenkins",
+        "EnableAutoHealing": "true",
+        "AutoAssignElasticIps": "false",
+        "AutoAssignPublicIps": "true",
+        "CustomRecipes" : {
+          "Setup" : ["jonny_docker::setup"],
+          "Deploy" : ["jonny_docker::pull_images", "jonny_docker::run_containers"],
+          "Shutdown" : ["jonny_docker::kill_containers"]
+        }
+      }
+    },
+
+    "jenkinsInstance": {
+      "Type": "AWS::OpsWorks::Instance",
+      "Properties": {
+        "StackId": {
+          "Ref": "jenkinsStack"
+        },
+        "LayerIds": [
+          {
+            "Ref": "jenkinsLayer"
+          }
+        ],
+        "InstanceType": "m1.small"
+      }
+    },
+
+    
+    "OpsWorksServiceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "opsworks.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": "opsworks-service",
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:*",
+                    "iam:PassRole",
+                    "cloudwatch:GetMetricStatistics",
+                    "elasticloadbalancing:*"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+
+    "OpsWorksInstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+
+    "OpsWorksInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "OpsWorksInstanceRole"
+          }
+        ]
+      }
+    }
+  },
+
+  "Outputs" : {
+    "StackId" : {
+      "Value" : { "Ref" : "jenkinsStack" }
+    }
+  }
+}
