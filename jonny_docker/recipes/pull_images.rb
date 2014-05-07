@@ -1,9 +1,9 @@
 # Pull each of our defined apps
 
-script "pull_app_#{name}_image" do
+script "pull_jenkins_image" do
   interpreter "bash"
   user "root"
   code <<-EOH
-    docker pull #{node[:jenkins][:image]}
+    docker pull #{node[:docker][:jenkins]}
   EOH
 end
