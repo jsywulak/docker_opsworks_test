@@ -1,8 +1,5 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
-
   "Resources": {
-
     "jenkinsStack": {
       "Type": "AWS::OpsWorks::Stack",
       "Properties": {
@@ -51,6 +48,8 @@
     "jenkinsInstance": {
       "Type": "AWS::OpsWorks::Instance",
       "Properties": {
+        "Os" : "Custom",
+        "AmiId" : "ami-53e19663",
         "StackId": {
           "Ref": "jenkinsStack"
         },
@@ -59,7 +58,7 @@
             "Ref": "jenkinsLayer"
           }
         ],
-        "InstanceType": "m1.small"
+        "InstanceType": "c3.large"
       }
     },
 
